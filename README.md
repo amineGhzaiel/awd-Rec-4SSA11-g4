@@ -1,4 +1,4 @@
-# JobBoard AWD
+# JobBoard 
 
 JobBoard AWD est une plateforme de recrutement qui centralise les annonces, les candidatures et la planification des entretiens. Le candidat peut consulter les offres, postuler avec son CV et suivre sa candidature. Le recruteur peut publier des annonces, examiner les dossiers et organiser un entretien avec les candidats présélectionnés.
 
