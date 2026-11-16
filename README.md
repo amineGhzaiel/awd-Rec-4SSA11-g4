@@ -1,5 +1,6 @@
 # Documentation technique de JobBoard 
 
+
 ## 1. Objectif du projet
 
 JobBoard AWD est une plateforme de recrutement qui centralise les offres d’emploi, les candidatures et les entretiens. Elle permet au candidat de suivre l’avancement de son dossier et au recruteur de gérer les candidatures reçues pour ses annonces.
