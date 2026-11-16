@@ -1,114 +1,208 @@
 # Diagrammes UML — JobBoard AWD
 
-## 1. Diagramme de classes
+## 1. Diagramme de classes par microservice
+
+Les namespaces regroupent les classes par microservice. Les liens en pointillés représentent des références par identifiant entre services.
 
 ```mermaid
 classDiagram
     direction TB
 
-    class Utilisateur {
-        <<abstract>>
-        +UUID id
-        +String nom
-        +String email
+    namespace Identite {
+        class Compte {
+            +UUID id
+            +String email
+            +String role
+            +String statutAcces
+        }
+
+        class JetonRenouvellement {
+            +UUID id
+            +UUID compteId
+            +DateTime dateExpiration
+        }
     }
 
-    class Candidat
-    class Recruteur
+    namespace Dossiers {
+        class DossierCandidat {
+            +UUID id
+            +UUID candidatId
+            +List~String~ competences
+            +List~String~ experiences
+            +DateTime dateModification
+        }
 
-    class DossierCandidat {
-        +UUID id
-        +String referenceCV
+        class VersionCV {
+            +UUID id
+            +UUID dossierId
+            +String referenceFichier
+            +Integer numeroVersion
+            +DateTime dateDepot
+        }
     }
 
-    class Annonce {
-        +UUID id
-        +String titre
-        +String description
-        +String statut
-        +DateTime datePublication
+    namespace Annonces {
+        class Annonce {
+            +UUID id
+            +UUID recruteurId
+            +String titre
+            +String description
+            +String statut
+            +DateTime datePublication
+        }
+
+        class CriterePoste {
+            +UUID id
+            +UUID annonceId
+            +String libelle
+            +String description
+        }
     }
 
-    class Candidature {
-        +UUID id
-        +DateTime dateDepot
-        +String statut
+    namespace Depots {
+        class Candidature {
+            +UUID id
+            +UUID annonceId
+            +UUID candidatId
+            +String statut
+            +DateTime dateDepot
+        }
+
+        class HistoriqueStatut {
+            +UUID id
+            +UUID candidatureId
+            +String ancienStatut
+            +String nouveauStatut
+            +DateTime dateChangement
+        }
     }
 
-    class RendezVous {
-        +UUID id
-        +DateTime debut
-        +DateTime fin
-        +String mode
-        +String lieu
-        +String lienVisio
-        +String statut
+    namespace Entretiens {
+        class RendezVous {
+            +UUID id
+            +UUID candidatureId
+            +DateTime debut
+            +DateTime fin
+            +String mode
+            +String lieu
+            +String lienVisio
+            +String statut
+        }
+
+        class ParticipantRdv {
+            +UUID id
+            +UUID rendezVousId
+            +UUID compteId
+            +String role
+        }
     }
 
-    class ParticipationEntretien {
-        +UUID rendezVousId
-        +UUID recruteurId
+    namespace CentreDeMessages {
+        class Message {
+            +UUID id
+            +UUID eventId
+            +UUID destinataireId
+            +String contenu
+            +DateTime dateCreation
+        }
+
+        class ModeleMessage {
+            +UUID id
+            +String typeEvenement
+            +String contenuModele
+        }
     }
 
-    class Notification {
-        +UUID id
-        +UUID evenementId
-        +String message
-        +DateTime dateCreation
-        +Boolean lue
-    }
+    Compte "1" -- "0..*" JetonRenouvellement : renouvelle sa session
+    DossierCandidat "1" -- "0..*" VersionCV : conserve
+    Annonce "1" -- "0..*" CriterePoste : définit
+    Candidature "1" -- "0..*" HistoriqueStatut : historise
+    RendezVous "1" -- "1..*" ParticipantRdv : regroupe
+    ModeleMessage "0..1" -- "0..*" Message : sert à générer
 
-    Utilisateur <|-- Candidat
-    Utilisateur <|-- Recruteur
+    DossierCandidat ..> Compte : candidatId
+    Annonce ..> Compte : recruteurId
+    Candidature ..> Compte : candidatId
+    Candidature ..> Annonce : annonceId
+    RendezVous ..> Candidature : candidatureId
+    ParticipantRdv ..> Compte : compteId
+    Message ..> Compte : destinataireId
 
-    Candidat "1" -- "0..1" DossierCandidat : possède
-    DossierCandidat "1" -- "0..*" Candidature : est utilisé pour
-    Recruteur "1" -- "0..*" Annonce : publie
-    Annonce "1" -- "0..*" Candidature : reçoit
-    Candidature "1" -- "0..*" RendezVous : donne lieu à
-    Recruteur "1" -- "0..*" RendezVous : organise
-    RendezVous "1" -- "0..*" ParticipationEntretien : comprend
-    Recruteur "1" -- "0..*" ParticipationEntretien : participe
-    RendezVous "1" -- "0..*" Notification : déclenche
-    Candidat "1" -- "0..*" Notification : reçoit
+    note for Candidature "Un seul dépôt par couple annonceId et candidatId."
+    note for RendezVous "La planification exige une candidature présélectionnée."
+    note for Message "Déduplication par couple eventId et destinataireId."
 ```
 
 ## 2. Diagramme de cas d’utilisation
 
 ```mermaid
 flowchart LR
+    V["Visiteur"]
     C["Candidat"]
     R["Recruteur"]
+    A["Administrateur"]
 
     subgraph JOB["Système JobBoard AWD"]
-        AUTH(["Se connecter"])
-        DOS(["Compléter son dossier et déposer son CV"])
-        OFF(["Consulter les offres"])
-        POST(["Postuler à une offre"])
-        SUIVI(["Suivre ses candidatures"])
-        RDV(["Consulter ses rendez-vous et notifications"])
+        subgraph PUBLIC["Consultation et inscription"]
+            VOIR(["Consulter les annonces"])
+            FILTRER(["Filtrer les annonces"])
+            INSCRIPTION(["Créer un compte"])
+        end
 
-        PUB(["Publier une annonce"])
-        EXAM(["Examiner les candidatures reçues"])
-        PRE(["Présélectionner une candidature"])
-        PLAN(["Planifier un entretien"])
-        ANN(["Annuler un entretien"])
-        VERIF(["Vérifier la présélection et les droits du recruteur"])
+        subgraph CAND["Espace candidat"]
+            DOSSIER(["Gérer son dossier, ses compétences et ses expériences"])
+            CV(["Déposer une nouvelle version du CV"])
+            POSTULER(["Postuler à une annonce"])
+            SUIVI(["Suivre le statut de sa candidature"])
+        end
+
+        subgraph RECR["Espace recruteur"]
+            PUBLIER(["Publier une annonce"])
+            CLOTURER(["Clôturer une annonce"])
+            EXAMINER(["Examiner une candidature"])
+            DECIDER(["Prendre une décision sur une candidature"])
+            PLANIFIER(["Planifier un rendez-vous"])
+            ANNULER(["Annuler un rendez-vous"])
+        end
+
+        subgraph ADMIN["Administration"]
+            ROLES(["Attribuer les rôles"])
+            ACCES(["Gérer les accès aux comptes"])
+        end
+
+        subgraph CONTROLES["Contrôles métier"]
+            OUVERTURE(["Vérifier que l’annonce est ouverte"])
+            DOUBLON(["Vérifier l’absence de candidature en double"])
+            TRANSITION(["Vérifier la transition de statut"])
+            PRESELECTION(["Vérifier que la candidature est présélectionnée"])
+            AUTORISATION(["Vérifier les droits du recruteur sur le rendez-vous"])
+        end
     end
 
-    C --- AUTH
-    C --- DOS
-    C --- OFF
-    C --- POST
+    V --- VOIR
+    V --- FILTRER
+    V --- INSCRIPTION
+
+    C --- DOSSIER
+    C --- CV
+    C --- POSTULER
     C --- SUIVI
-    C --- RDV
 
-    R --- AUTH
-    R --- PUB
-    R --- EXAM
-    R --- PRE
-    R --- PLAN
-    R --- ANN
+    R --- PUBLIER
+    R --- CLOTURER
+    R --- EXAMINER
+    R --- DECIDER
+    R --- PLANIFIER
+    R --- ANNULER
 
-    PLAN -. "« include »" .-> VERIF
+    A --- ROLES
+    A --- ACCES
+
+    FILTRER -. "« extend »" .-> VOIR
+    POSTULER -. "« include »" .-> OUVERTURE
+    POSTULER -. "« include »" .-> DOUBLON
+    DECIDER -. "« include »" .-> TRANSITION
+    PLANIFIER -. "« include »" .-> PRESELECTION
+    PLANIFIER -. "« include »" .-> AUTORISATION
+    ANNULER -. "« include »" .-> AUTORISATION
 ```
