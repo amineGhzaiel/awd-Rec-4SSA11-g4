@@ -1,4 +1,4 @@
-# Diagrammes UML — JobBoard AWD
+# Diagrammes UML — JobBoard 
 
 ## 1. Diagramme de classes par microservice
 
