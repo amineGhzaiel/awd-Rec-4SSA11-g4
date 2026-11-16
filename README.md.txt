@@ -1,4 +1,4 @@
-# Documentation technique de JobBoard AWD
+# Documentation technique de JobBoard 
 
 ## 1. Objectif du projet
 
